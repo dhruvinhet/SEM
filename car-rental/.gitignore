@@ -1,0 +1,31 @@
+# Environment
+node_modules/
+__pycache__/
+.env
+*.pyc
+.venv/
+venv/
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads
+uploads/
+
+# Docker
+mongo_data/
+
+# Logs
+*.log
