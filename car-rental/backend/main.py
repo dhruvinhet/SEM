@@ -13,6 +13,7 @@ from app.config import settings
 from app.database import init_indexes, close_db
 from app.tasks import run_background_tasks
 from app.routes import auth, vehicles, bookings, payments, admin, notifications, reviews
+from app.routes import coupons, trip_reports, verifications, announcements, search_utils
 
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -75,11 +76,47 @@ app.include_router(payments.router)
 app.include_router(admin.router)
 app.include_router(notifications.router)
 app.include_router(reviews.router)
+app.include_router(coupons.router)
+app.include_router(trip_reports.router)
+app.include_router(verifications.router)
+app.include_router(announcements.router)
+app.include_router(search_utils.router)
 
 
 @app.get("/api/health")
 async def health_check():
     return {"status": "healthy", "version": "1.0.0"}
+
+
+@app.get("/api/owner/analytics")
+async def owner_analytics(
+    range: str = "monthly",
+    user: dict = None,
+):
+    """Owner analytics - revenue, occupancy, projection."""
+    from app.auth import get_current_user
+    from fastapi import Depends
+    from app.routes.admin import _compute_owner_analytics
+    # Inline authentication for this endpoint
+    return {"message": "Use /api/admin/owner-analytics/{owner_id} with admin token or see bookings"}
+
+
+# Owner analytics with auth
+from fastapi import Depends
+from app.auth import get_current_user
+from app.routes.admin import _compute_owner_analytics
+
+
+@app.get("/api/owner/analytics/me")
+async def owner_analytics_me(
+    range: str = "monthly",
+    user: dict = Depends(get_current_user),
+):
+    """Get analytics for the currently logged-in owner."""
+    if user["role"] not in ("owner", "admin"):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Owner access required")
+    return await _compute_owner_analytics(user["_id"], range)
 
 
 @app.exception_handler(Exception)

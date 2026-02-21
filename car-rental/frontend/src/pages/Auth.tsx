@@ -2,20 +2,23 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { Car, Eye, EyeOff, Shield, Star, Zap, ArrowRight } from 'lucide-react';
-import toast from 'react-hot-toast';
+import ScrollReveal from '../components/ScrollReveal';
+import { customToast } from '../components/CustomToast';
+import { useConfetti } from '../hooks/useConfetti';
 
 /* ── Shared side panel for split-screen auth layout ── */
 function AuthSidePanel({ mode }: { mode: 'login' | 'signup' }) {
   return (
     <div className="hidden lg:flex lg:flex-1 relative overflow-hidden bg-dark-800 items-center justify-center p-12">
       {/* Blurred color blobs */}
-      <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-primary-500/15 blur-3xl" />
-      <div className="absolute bottom-10 right-10 w-60 h-60 rounded-full bg-accent-500/10 blur-3xl" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 border border-white/5 rounded-full" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-white/[0.03] rounded-full" />
+      <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-primary-500/[0.08] blur-[100px] animate-aurora" />
+      <div className="absolute bottom-10 right-10 w-60 h-60 rounded-full bg-neon-blue/[0.06] blur-[100px] animate-aurora-2" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 border border-white/[0.04] rounded-full" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-white/[0.02] rounded-full" />
 
       <div className="relative z-10 max-w-sm text-center">
         {/* Logo */}
+        <ScrollReveal direction="left" delay={0}>
         <div className="flex items-center justify-center gap-2.5 mb-10">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
             <Car className="w-6 h-6 text-white" strokeWidth={2.5} />
@@ -24,7 +27,9 @@ function AuthSidePanel({ mode }: { mode: 'login' | 'signup' }) {
             Drive<span className="text-primary-400">X</span>
           </span>
         </div>
+        </ScrollReveal>
 
+        <ScrollReveal direction="left" delay={100}>
         <h2 className="text-white !text-2xl mb-4">
           {mode === 'login' ? 'Welcome back to the road.' : 'Join 10,000+ riders.'}
         </h2>
@@ -33,8 +38,10 @@ function AuthSidePanel({ mode }: { mode: 'login' | 'signup' }) {
             ? 'Sign in to access your bookings, manage vehicles, and get back on the road.'
             : 'Create your account and start renting premium vehicles in under 2 minutes.'}
         </p>
+        </ScrollReveal>
 
         {/* Feature pills */}
+        <ScrollReveal direction="left" delay={200}>
         <div className="flex flex-wrap justify-center gap-3">
           {[
             { icon: Shield, text: 'Fully insured' },
@@ -49,6 +56,7 @@ function AuthSidePanel({ mode }: { mode: 'login' | 'signup' }) {
             </span>
           ))}
         </div>
+        </ScrollReveal>
 
         {/* Testimonial */}
         <div className="mt-12 p-6 rounded-2xl bg-white/5 border border-white/10 text-left">
@@ -83,13 +91,13 @@ export function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-      toast.success('Welcome back!');
+      customToast.celebration('Welcome back!');
       const role = useAuthStore.getState().user?.role;
       if (role === 'admin') navigate('/admin');
       else if (role === 'owner') navigate('/owner/dashboard');
       else navigate('/user/dashboard');
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Login failed');
+      customToast.error(err?.response?.data?.detail || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -100,22 +108,22 @@ export function LoginPage() {
       <AuthSidePanel mode="login" />
 
       {/* Form side */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12 bg-sand-50">
+      <div className="flex-1 flex items-center justify-center px-6 py-12 bg-dark-950">
         <div className="w-full max-w-[400px] animate-fade-in">
           {/* Mobile logo (hidden on lg) */}
           <div className="lg:hidden text-center mb-8">
             <Link to="/" className="inline-flex items-center gap-2">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-glow">
                 <Car className="w-5 h-5 text-white" strokeWidth={2.5} />
               </div>
-              <span className="text-2xl font-display font-extrabold text-dark-800">
+              <span className="text-2xl font-display font-extrabold text-white">
                 Drive<span className="text-gradient">X</span>
               </span>
             </Link>
           </div>
 
           <div className="mb-8">
-            <h1 className="!text-3xl text-dark-800">Sign in</h1>
+            <h1 className="!text-3xl text-white">Sign in</h1>
             <p className="text-dark-400 text-sm mt-2">Enter your details to continue</p>
           </div>
 
@@ -164,10 +172,10 @@ export function LoginPage() {
                 <span className="w-1 h-1 rounded-full bg-accent-500 mr-1" />
                 Demo accounts available
               </summary>
-              <div className="mt-2 p-3 rounded-xl bg-white border border-sand-200 text-[11px] text-dark-400 space-y-1 font-mono animate-fade-in">
-                <p><span className="text-dark-500 font-sans font-medium">Admin:</span> admin@carrental.com / admin123</p>
-                <p><span className="text-dark-500 font-sans font-medium">Owner:</span> owner1@carrental.com / owner123</p>
-                <p><span className="text-dark-500 font-sans font-medium">User:</span> user1@carrental.com / user123</p>
+              <div className="mt-2 p-3 rounded-xl bg-dark-800/60 border border-white/[0.06] text-[11px] text-dark-400 space-y-1 font-mono animate-fade-in">
+                <p><span className="text-dark-300 font-sans font-medium">Admin:</span> admin@carrental.com / admin123</p>
+                <p><span className="text-dark-300 font-sans font-medium">Owner:</span> owner1@carrental.com / owner123</p>
+                <p><span className="text-dark-300 font-sans font-medium">User:</span> user1@carrental.com / user123</p>
               </div>
             </details>
 
@@ -183,7 +191,7 @@ export function LoginPage() {
 
           <p className="text-center text-sm text-dark-400 mt-8">
             Don't have an account?{' '}
-            <Link to="/auth/signup" className="text-primary-600 font-semibold hover:underline">
+            <Link to="/auth/signup" className="text-primary-400 font-semibold hover:underline">
               Create one
             </Link>
           </p>
@@ -202,16 +210,18 @@ export function SignupPage() {
   const [loading, setLoading] = useState(false);
   const { signup } = useAuthStore();
   const navigate = useNavigate();
+  const { stars } = useConfetti();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       await signup(name, email, password, role);
-      toast.success('Account created!');
+      customToast.celebration('Account created!');
+      stars();
       navigate(role === 'owner' ? '/owner/dashboard' : '/user/dashboard');
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Signup failed');
+      customToast.error(err?.response?.data?.detail || 'Signup failed');
     } finally {
       setLoading(false);
     }
@@ -222,22 +232,22 @@ export function SignupPage() {
       <AuthSidePanel mode="signup" />
 
       {/* Form side */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12 bg-sand-50">
+      <div className="flex-1 flex items-center justify-center px-6 py-12 bg-dark-950">
         <div className="w-full max-w-[400px] animate-fade-in">
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8">
             <Link to="/" className="inline-flex items-center gap-2">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-glow">
                 <Car className="w-5 h-5 text-white" strokeWidth={2.5} />
               </div>
-              <span className="text-2xl font-display font-extrabold text-dark-800">
+              <span className="text-2xl font-display font-extrabold text-white">
                 Drive<span className="text-gradient">X</span>
               </span>
             </Link>
           </div>
 
           <div className="mb-8">
-            <h1 className="!text-3xl text-dark-800">Create account</h1>
+            <h1 className="!text-3xl text-white">Create account</h1>
             <p className="text-dark-400 text-sm mt-2">Start your journey with DriveX</p>
           </div>
 
@@ -305,7 +315,7 @@ export function SignupPage() {
                           : password.length >= 6
                           ? 'bg-amber-400'
                           : 'bg-red-400'
-                        : 'bg-sand-200'
+                        : 'bg-dark-700'
                     }`}
                   />
                 ))}
@@ -325,11 +335,11 @@ export function SignupPage() {
                     onClick={() => setRole(value)}
                     className={`p-4 rounded-2xl border-2 text-left transition-all duration-300 ${
                       role === value
-                        ? 'border-primary-500 bg-primary-50 shadow-glow'
-                        : 'border-sand-200 bg-white hover:border-sand-300'
+                        ? 'border-primary-500 bg-primary-500/10 shadow-glow'
+                        : 'border-white/[0.08] bg-dark-800/50 hover:border-white/[0.15]'
                     }`}
                   >
-                    <p className="font-bold text-dark-800 text-sm">{label}</p>
+                    <p className="font-bold text-white text-sm">{label}</p>
                     <p className="text-[11px] text-dark-400 mt-1">{desc}</p>
                   </button>
                 ))}
@@ -348,7 +358,7 @@ export function SignupPage() {
 
           <p className="text-center text-sm text-dark-400 mt-8">
             Already have an account?{' '}
-            <Link to="/auth/login" className="text-primary-600 font-semibold hover:underline">
+            <Link to="/auth/login" className="text-primary-400 font-semibold hover:underline">
               Sign in
             </Link>
           </p>

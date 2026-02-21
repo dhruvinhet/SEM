@@ -1,22 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { vehiclesAPI, reviewsAPI, bookingsAPI, paymentsAPI } from '../lib/api';
+import { vehiclesAPI, reviewsAPI, bookingsAPI, paymentsAPI, searchAPI } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import BookingStepper from '../components/BookingStepper';
 import StatusBadge from '../components/StatusBadge';
 import { ErrorState } from '../components/States';
+import ScrollReveal from '../components/ScrollReveal';
 import {
   MapPin, Users, Fuel, Settings2, Star, Calendar,
-  ChevronLeft, ChevronRight, Shield, Clock, CreditCard, Check, X,
+  ChevronLeft, ChevronRight, Shield, Clock, CreditCard, Check, X, Zap, AlertCircle, UserCheck,
 } from 'lucide-react';
 import { format, addDays, differenceInDays, isAfter, isBefore, parseISO } from 'date-fns';
-import toast from 'react-hot-toast';
+import { customToast } from '../components/CustomToast';
+import { useConfetti } from '../hooks/useConfetti';
 import type { Vehicle, Review } from '../types';
 
 export default function VehicleDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuthStore();
+  const { fireworks } = useConfetti();
 
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -50,6 +53,8 @@ export default function VehicleDetails() {
         setVehicle(vehicleRes.data);
         setReviews(reviewsRes.data.reviews);
         setAvgRating(reviewsRes.data.averageRating);
+        // Track recently viewed (fire and forget)
+        searchAPI.trackView(id).catch(() => {});
       } catch (err: any) {
         setError(err?.response?.data?.detail || 'Failed to load vehicle');
       } finally {
@@ -69,7 +74,7 @@ export default function VehicleDetails() {
       setHoldTimer(diff);
       if (diff <= 0) {
         clearInterval(interval);
-        toast.error('Hold has expired');
+        customToast.error('Hold has expired');
       }
     }, 1000);
     return () => clearInterval(interval);
@@ -123,9 +128,9 @@ export default function VehicleDetails() {
       });
       setBooking(res.data);
       setBookingStep(2); // Move to payment step
-      toast.success('Booking hold created!');
+      customToast.booking('Booking hold created!');
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Booking failed');
+      customToast.error(err?.response?.data?.detail || 'Booking failed');
     } finally {
       setBookingLoading(false);
     }
@@ -135,19 +140,18 @@ export default function VehicleDetails() {
     if (!booking) return;
     setBookingLoading(true);
     try {
-      // Simulate payment
+      // Process payment (backend auto-confirms booking on success)
       await paymentsAPI.charge({
         bookingId: booking._id,
         method: paymentMethod,
         amount: booking.priceBreakdown.total,
       });
-      // Confirm booking
-      const res = await bookingsAPI.confirm(booking._id);
-      setBooking(res.data);
+      setBooking({ ...booking, status: 'confirmed' });
       setBookingStep(3); // Confirmation step
-      toast.success('Payment successful! Booking confirmed.');
+      customToast.payment('Payment successful! Booking confirmed.');
+      fireworks();
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Payment failed');
+      customToast.error(err?.response?.data?.detail || 'Payment failed');
     } finally {
       setBookingLoading(false);
     }
@@ -156,14 +160,14 @@ export default function VehicleDetails() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 animate-pulse">
-        <div className="h-[400px] bg-gray-200 rounded-2xl mb-8" />
+        <div className="h-[400px] bg-dark-800 rounded-2xl mb-8" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-64" />
-            <div className="h-4 bg-gray-200 rounded w-full" />
-            <div className="h-4 bg-gray-200 rounded w-3/4" />
+            <div className="h-8 bg-dark-800 rounded w-64" />
+            <div className="h-4 bg-dark-800 rounded w-full" />
+            <div className="h-4 bg-dark-800 rounded w-3/4" />
           </div>
-          <div className="h-64 bg-gray-200 rounded-2xl" />
+          <div className="h-64 bg-dark-800 rounded-2xl" />
         </div>
       </div>
     );
@@ -219,8 +223,8 @@ export default function VehicleDetails() {
             )}
           </>
         ) : (
-          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-            <span className="text-gray-400">No images</span>
+          <div className="w-full h-full bg-dark-800 flex items-center justify-center">
+            <span className="text-dark-500">No images</span>
           </div>
         )}
       </div>
@@ -229,25 +233,63 @@ export default function VehicleDetails() {
         {/* Details */}
         <div className="lg:col-span-2 space-y-8">
           <div>
-            <h1 className="text-3xl font-display font-bold text-dark-700">{vehicle.title}</h1>
+            <div className="flex items-start gap-3 flex-wrap">
+              <h1 className="text-3xl font-display font-bold text-white">{vehicle.title}</h1>
+              {vehicle.instantBooking && (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-2.5 py-1 rounded-full mt-2">
+                  <Zap className="w-3 h-3" /> Instant Book
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-4 mt-2 text-dark-400 flex-wrap">
               {vehicle.location && (
                 <span className="flex items-center gap-1 text-sm">
                   <MapPin className="w-4 h-4" /> {vehicle.location}
                 </span>
               )}
-              {avgRating > 0 && (
+              {((vehicle.avgRating ?? 0) > 0 || avgRating > 0) && (
                 <span className="flex items-center gap-1 text-sm">
                   <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                  {avgRating} ({reviews.length} reviews)
+                  {vehicle.avgRating || avgRating} ({vehicle.totalRatings || reviews.length} reviews)
                 </span>
               )}
+              {vehicle.distanceKm != null && (
+                <span className="text-sm text-dark-400">{vehicle.distanceKm.toFixed(1)} km away</span>
+              )}
             </div>
+            {/* Trust Badges */}
+            {(vehicle.ownerVerified || vehicle.insuranceVerified) && (
+              <div className="flex items-center gap-2 mt-3 flex-wrap">
+                {vehicle.ownerVerified && (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20 px-2.5 py-1 rounded-full">
+                    <UserCheck className="w-3.5 h-3.5" /> Owner Verified
+                  </span>
+                )}
+                {vehicle.insuranceVerified && (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium bg-neon-blue/10 text-neon-blue border border-neon-blue/20 px-2.5 py-1 rounded-full">
+                    <Shield className="w-3.5 h-3.5" /> Insurance Verified
+                  </span>
+                )}
+              </div>
+            )}
+            {/* Cancellation Policy */}
+            {vehicle.cancellationPolicy && (
+              <div className="mt-3 flex items-center gap-2 text-sm">
+                <AlertCircle className="w-4 h-4 text-dark-400" />
+                <span className="text-dark-400">Cancellation: </span>
+                <span className={`font-medium capitalize ${
+                  vehicle.cancellationPolicy === 'flexible' ? 'text-green-600' :
+                  vehicle.cancellationPolicy === 'moderate' ? 'text-yellow-600' :
+                  'text-red-600'
+                }`}>{vehicle.cancellationPolicy}</span>
+              </div>
+            )}
           </div>
 
           {/* Specs */}
+          <ScrollReveal delay={100}>
           <div className="card p-6">
-            <h3 className="font-semibold text-dark-700 mb-4">Specifications</h3>
+            <h3 className="font-semibold text-white mb-4">Specifications</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
                 { icon: Users, label: 'Seats', value: vehicle.specs.seats },
@@ -255,26 +297,28 @@ export default function VehicleDetails() {
                 { icon: Fuel, label: 'Fuel', value: vehicle.specs.fuel },
                 ...(vehicle.specs.year ? [{ icon: Calendar, label: 'Year', value: vehicle.specs.year }] : []),
               ].map(({ icon: Icon, label, value }) => (
-                <div key={label} className="text-center p-3 bg-gray-50 rounded-xl">
-                  <Icon className="w-5 h-5 text-primary-500 mx-auto mb-1" />
+                <div key={label} className="text-center p-3 bg-dark-800/60 border border-white/[0.06] rounded-xl">
+                  <Icon className="w-5 h-5 text-primary-400 mx-auto mb-1" />
                   <p className="text-xs text-dark-400">{label}</p>
-                  <p className="font-semibold text-dark-700 text-sm capitalize">{value}</p>
+                  <p className="font-semibold text-white text-sm capitalize">{value}</p>
                 </div>
               ))}
             </div>
           </div>
+          </ScrollReveal>
 
           {/* Description */}
           {vehicle.description && (
             <div className="card p-6">
-              <h3 className="font-semibold text-dark-700 mb-3">About this car</h3>
+              <h3 className="font-semibold text-white mb-3">About this car</h3>
               <p className="text-dark-400 text-sm leading-relaxed">{vehicle.description}</p>
             </div>
           )}
 
           {/* Reviews */}
+          <ScrollReveal delay={200}>
           <div className="card p-6">
-            <h3 className="font-semibold text-dark-700 mb-4">
+            <h3 className="font-semibold text-white mb-4">
               Reviews {reviews.length > 0 && `(${reviews.length})`}
             </h3>
             {reviews.length === 0 ? (
@@ -282,13 +326,13 @@ export default function VehicleDetails() {
             ) : (
               <div className="space-y-4">
                 {reviews.slice(0, 5).map((r) => (
-                  <div key={r._id} className="border-b border-gray-100 pb-4 last:border-0">
+                  <div key={r._id} className="border-b border-white/[0.06] pb-4 last:border-0">
                     <div className="flex items-center gap-2 mb-1">
                       <div className="flex">
                         {Array.from({ length: 5 }).map((_, i) => (
                           <Star
                             key={i}
-                            className={`w-4 h-4 ${i < r.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-200'}`}
+                            className={`w-4 h-4 ${i < r.rating ? 'text-yellow-500 fill-yellow-500' : 'text-dark-600'}`}
                           />
                         ))}
                       </div>
@@ -296,12 +340,13 @@ export default function VehicleDetails() {
                         {r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : ''}
                       </span>
                     </div>
-                    <p className="text-sm text-dark-600">{r.comment}</p>
+                    <p className="text-sm text-dark-300">{r.comment}</p>
                   </div>
                 ))}
               </div>
             )}
           </div>
+          </ScrollReveal>
         </div>
 
         {/* Booking Sidebar */}
@@ -309,13 +354,13 @@ export default function VehicleDetails() {
           <div className="card p-6 sticky top-24">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <span className="text-3xl font-bold text-dark-700">
+                <span className="text-3xl font-bold text-white">
                   ₹{vehicle.pricing.baseRate.toLocaleString()}
                 </span>
                 <span className="text-dark-400">/day</span>
               </div>
               {vehicle.pricing.weekendRate && (
-                <span className="text-xs text-dark-400 bg-gray-50 px-2 py-1 rounded-lg">
+                <span className="text-xs text-dark-400 bg-dark-800/60 border border-white/[0.06] px-2 py-1 rounded-lg">
                   Weekend: ₹{vehicle.pricing.weekendRate.toLocaleString()}
                 </span>
               )}
@@ -354,35 +399,35 @@ export default function VehicleDetails() {
 
                 {/* Price estimate */}
                 {days > 0 && (
-                  <div className="bg-gray-50 rounded-xl p-4 space-y-2 animate-fade-in">
+                  <div className="bg-dark-800/60 border border-white/[0.06] rounded-xl p-4 space-y-2 animate-fade-in">
                     <div className="flex justify-between text-sm">
                       <span className="text-dark-400">{days} day{days > 1 ? 's' : ''} × ₹{vehicle.pricing.baseRate.toLocaleString()}</span>
-                      <span className="text-dark-600">₹{(days * vehicle.pricing.baseRate).toLocaleString()}</span>
+                      <span className="text-dark-200">₹{(days * vehicle.pricing.baseRate).toLocaleString()}</span>
                     </div>
                     {vehicle.pricing.cleaningFee > 0 && (
                       <div className="flex justify-between text-sm">
                         <span className="text-dark-400">Cleaning fee</span>
-                        <span className="text-dark-600">₹{vehicle.pricing.cleaningFee.toLocaleString()}</span>
+                        <span className="text-dark-200">₹{vehicle.pricing.cleaningFee.toLocaleString()}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-sm">
                       <span className="text-dark-400">Service fee (5%)</span>
-                      <span className="text-dark-600">₹{Math.round(days * vehicle.pricing.baseRate * 0.05).toLocaleString()}</span>
+                      <span className="text-dark-200">₹{Math.round(days * vehicle.pricing.baseRate * 0.05).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-dark-400">Tax (18%)</span>
-                      <span className="text-dark-600">₹{Math.round((days * vehicle.pricing.baseRate * 1.05 + (vehicle.pricing.cleaningFee || 0)) * 0.18).toLocaleString()}</span>
+                      <span className="text-dark-200">₹{Math.round((days * vehicle.pricing.baseRate * 1.05 + (vehicle.pricing.cleaningFee || 0)) * 0.18).toLocaleString()}</span>
                     </div>
                     {vehicle.pricing.securityDeposit > 0 && (
                       <div className="flex justify-between text-sm">
                         <span className="text-dark-400">Security deposit (refundable)</span>
-                        <span className="text-dark-600">₹{vehicle.pricing.securityDeposit.toLocaleString()}</span>
+                        <span className="text-dark-200">₹{vehicle.pricing.securityDeposit.toLocaleString()}</span>
                       </div>
                     )}
-                    <hr className="border-gray-200" />
+                    <hr className="border-white/[0.06]" />
                     <div className="flex justify-between font-semibold">
-                      <span className="text-dark-700">Total</span>
-                      <span className="text-dark-700 text-lg">₹{estimatedTotal.toLocaleString()}</span>
+                      <span className="text-white">Total</span>
+                      <span className="text-white text-lg">₹{estimatedTotal.toLocaleString()}</span>
                     </div>
                   </div>
                 )}
@@ -390,7 +435,7 @@ export default function VehicleDetails() {
                 <button
                   onClick={() => {
                     if (!startDate || !endDate) {
-                      toast.error('Please select dates');
+                      customToast.error('Please select dates');
                       return;
                     }
                     if (bookingStep === 0) setBookingStep(1);
@@ -409,11 +454,11 @@ export default function VehicleDetails() {
               <div className="space-y-4 animate-fade-in">
                 {/* Hold timer */}
                 {holdTimer !== null && holdTimer > 0 && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-yellow-600 flex-shrink-0" />
+                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-yellow-400 flex-shrink-0" />
                     <div>
-                      <p className="text-sm font-medium text-yellow-800">Hold expires in</p>
-                      <p className="text-lg font-bold text-yellow-700">
+                      <p className="text-sm font-medium text-yellow-300">Hold expires in</p>
+                      <p className="text-lg font-bold text-yellow-400">
                         {Math.floor(holdTimer / 60)}:{String(holdTimer % 60).padStart(2, '0')}
                       </p>
                     </div>
@@ -421,8 +466,8 @@ export default function VehicleDetails() {
                 )}
 
                 {/* Price summary */}
-                <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-                  <h4 className="font-semibold text-dark-700">Price Breakdown</h4>
+                <div className="bg-dark-800/60 border border-white/[0.06] rounded-xl p-4 space-y-2">
+                  <h4 className="font-semibold text-white">Price Breakdown</h4>
                   <div className="flex justify-between text-sm">
                     <span className="text-dark-400">Base ({booking.priceBreakdown.days} days)</span>
                     <span>₹{booking.priceBreakdown.base.toLocaleString()}</span>
@@ -439,10 +484,10 @@ export default function VehicleDetails() {
                     <span className="text-dark-400">Tax</span>
                     <span>₹{booking.priceBreakdown.tax.toLocaleString()}</span>
                   </div>
-                  <hr className="border-gray-200" />
-                  <div className="flex justify-between font-bold">
-                    <span>Total</span>
-                    <span className="text-lg">₹{booking.priceBreakdown.total.toLocaleString()}</span>
+                    <hr className="border-white/[0.06]" />
+                    <div className="flex justify-between font-bold">
+                      <span className="text-white">Total</span>
+                      <span className="text-lg text-white">₹{booking.priceBreakdown.total.toLocaleString()}</span>
                   </div>
                 </div>
 
@@ -458,7 +503,7 @@ export default function VehicleDetails() {
                       <label
                         key={value}
                         className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${
-                          paymentMethod === value ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+                          paymentMethod === value ? 'border-primary-500 bg-primary-500/10' : 'border-white/[0.08] bg-dark-800/50'
                         }`}
                       >
                         <input
@@ -470,7 +515,7 @@ export default function VehicleDetails() {
                           className="sr-only"
                         />
                         <Icon className="w-5 h-5 text-dark-400" />
-                        <span className="text-sm font-medium text-dark-700">{label}</span>
+                        <span className="text-sm font-medium text-white">{label}</span>
                         {paymentMethod === value && <Check className="w-5 h-5 text-primary-500 ml-auto" />}
                       </label>
                     ))}
@@ -490,17 +535,17 @@ export default function VehicleDetails() {
             {/* Step 3: Confirmation */}
             {bookingStep === 3 && booking && (
               <div className="text-center space-y-4 animate-fade-in">
-                <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto">
-                  <Check className="w-8 h-8 text-green-500" />
+                <div className="w-16 h-16 bg-green-500/10 border border-green-500/20 rounded-full flex items-center justify-center mx-auto">
+                  <Check className="w-8 h-8 text-green-400" />
                 </div>
-                <h3 className="text-xl font-bold text-dark-700">Booking Confirmed!</h3>
+                <h3 className="text-xl font-bold text-white">Booking Confirmed!</h3>
                 <p className="text-dark-400 text-sm">
                   Your booking for {vehicle.title} has been confirmed.
                 </p>
-                <div className="bg-gray-50 rounded-xl p-4 text-left space-y-2 text-sm">
+                <div className="bg-dark-800/60 border border-white/[0.06] rounded-xl p-4 text-left space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-dark-400">Booking ID</span>
-                    <span className="font-mono text-dark-700">{booking._id?.slice(-8)}</span>
+                    <span className="font-mono text-white">{booking._id?.slice(-8)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-dark-400">Status</span>
@@ -508,7 +553,7 @@ export default function VehicleDetails() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-dark-400">Dates</span>
-                    <span className="text-dark-700">
+                    <span className="text-white">
                       {format(new Date(booking.startDate), 'MMM d')} - {format(new Date(booking.endDate), 'MMM d, yyyy')}
                     </span>
                   </div>
@@ -523,7 +568,7 @@ export default function VehicleDetails() {
             )}
 
             {/* Features */}
-            <div className="mt-6 pt-6 border-t border-gray-100 space-y-3">
+            <div className="mt-6 pt-6 border-t border-white/[0.06] space-y-3">
               {[
                 { icon: Shield, text: 'Free cancellation (48h+)' },
                 { icon: Clock, text: '15-min hold during payment' },

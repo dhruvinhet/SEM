@@ -1,18 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { vehiclesAPI, bookingsAPI } from '../lib/api';
+import { vehiclesAPI, bookingsAPI, ownerAPI } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import StatusBadge from '../components/StatusBadge';
 import { BookingRowSkeleton, VehicleCardSkeleton } from '../components/Skeletons';
 import { EmptyState, ErrorState } from '../components/States';
+import ScrollReveal from '../components/ScrollReveal';
+import SpeedometerGauge from '../components/SpeedometerGauge';
+import AnimatedTabs from '../components/AnimatedTabs';
 import {
   Plus, Car, Calendar, DollarSign, Edit, Trash2, X, Check, Upload, Eye,
   ChevronRight, Image as ImageIcon, MapPin, Users, Fuel, Settings2,
+  TrendingUp, BarChart2, Target, Percent,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import toast from 'react-hot-toast';
-import type { Vehicle, Booking } from '../types';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { customToast } from '../components/CustomToast';
+import type { Vehicle, Booking, OwnerAnalytics } from '../types';
 
-type Tab = 'vehicles' | 'bookings';
+type Tab = 'vehicles' | 'bookings' | 'analytics';
 
 export default function OwnerDashboard() {
   const { user } = useAuthStore();
@@ -45,6 +50,23 @@ export default function OwnerDashboard() {
     securityDeposit: 5000,
   });
 
+  // Analytics
+  const [analytics, setAnalytics] = useState<OwnerAnalytics | null>(null);
+  const [analyticsRange, setAnalyticsRange] = useState('monthly');
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  const loadAnalytics = async (range = analyticsRange) => {
+    setAnalyticsLoading(true);
+    try {
+      const res = await ownerAPI.analytics(range);
+      setAnalytics(res.data);
+    } catch {
+      customToast.error('Failed to load analytics');
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
   // Image upload
   const [imageFiles, setImageFiles] = useState<File[]>([]);
 
@@ -66,7 +88,7 @@ export default function OwnerDashboard() {
       const res = await bookingsAPI.list({ page: 1, limit: 100 });
       setBookings(res.data.items || res.data);
     } catch (err: any) {
-      toast.error('Failed to load bookings');
+      customToast.error('Failed to load bookings');
     } finally {
       setBookingsLoading(false);
     }
@@ -75,7 +97,12 @@ export default function OwnerDashboard() {
   useEffect(() => {
     loadVehicles();
     loadBookings();
+    loadAnalytics();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'analytics') loadAnalytics(analyticsRange);
+  }, [activeTab, analyticsRange]);
 
   const resetForm = () => {
     setForm({
@@ -139,11 +166,11 @@ export default function OwnerDashboard() {
       if (editingVehicle) {
         await vehiclesAPI.update(editingVehicle._id, body);
         vehicleId = editingVehicle._id;
-        toast.success('Vehicle updated!');
+        customToast.success('Vehicle updated!');
       } else {
         const res = await vehiclesAPI.create(body);
         vehicleId = res.data._id || res.data.id;
-        toast.success('Vehicle created!');
+        customToast.success('Vehicle created!');
       }
 
       // Upload images if any
@@ -151,13 +178,13 @@ export default function OwnerDashboard() {
         const formData = new FormData();
         imageFiles.forEach((f) => formData.append('files', f));
         await vehiclesAPI.uploadImages(vehicleId, formData);
-        toast.success('Images uploaded!');
+        customToast.success('Images uploaded!');
       }
 
       resetForm();
       loadVehicles();
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Save failed');
+      customToast.error(err?.response?.data?.detail || 'Save failed');
     } finally {
       setFormLoading(false);
     }
@@ -167,20 +194,20 @@ export default function OwnerDashboard() {
     if (!confirm('Delete this vehicle? This cannot be undone.')) return;
     try {
       await vehiclesAPI.delete(vehicleId);
-      toast.success('Vehicle deleted');
+      customToast.success('Vehicle deleted');
       loadVehicles();
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Delete failed');
+      customToast.error(err?.response?.data?.detail || 'Delete failed');
     }
   };
 
   const handleConfirmBooking = async (bookingId: string) => {
     try {
       await bookingsAPI.confirm(bookingId);
-      toast.success('Booking confirmed');
+      customToast.booking('Booking confirmed');
       loadBookings();
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Confirm failed');
+      customToast.error(err?.response?.data?.detail || 'Confirm failed');
     }
   };
 
@@ -194,7 +221,7 @@ export default function OwnerDashboard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-display font-bold text-dark-700">Owner Dashboard</h1>
+          <h1 className="text-3xl font-display font-bold text-white">Owner Dashboard</h1>
           <p className="text-dark-400 mt-1">Manage your fleet & bookings</p>
         </div>
         <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-primary flex items-center gap-2">
@@ -202,43 +229,35 @@ export default function OwnerDashboard() {
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'Vehicles', value: vehicles.length, icon: Car, color: 'bg-blue-50 text-blue-600' },
-          { label: 'Active Bookings', value: bookings.filter((b) => b.status === 'active').length, icon: Calendar, color: 'bg-green-50 text-green-600' },
-          { label: 'Pending', value: bookings.filter((b) => ['pending', 'held'].includes(b.status)).length, icon: Calendar, color: 'bg-yellow-50 text-yellow-600' },
-          { label: 'Revenue', value: `₹${(totalRevenue / 1000).toFixed(0)}k`, icon: DollarSign, color: 'bg-purple-50 text-purple-600' },
-        ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="card p-4 flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color}`}>
-              <Icon className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xl font-bold text-dark-700">{value}</p>
-              <p className="text-xs text-dark-400">{label}</p>
-            </div>
+      {/* Stats — speedometer gauges */}
+      <ScrollReveal>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+          <div className="card p-4 flex flex-col items-center">
+            <SpeedometerGauge value={vehicles.length} max={Math.max(vehicles.length, 20)} label="Vehicles" displayValue={String(vehicles.length)} color="#00d4ff" glowColor="#00d4ff" size={110} />
           </div>
-        ))}
-      </div>
+          <div className="card p-4 flex flex-col items-center">
+            <SpeedometerGauge value={bookings.filter((b) => b.status === 'active').length} max={Math.max(bookings.length, 10)} label="Active" displayValue={String(bookings.filter((b) => b.status === 'active').length)} color="#22c55e" glowColor="#22c55e" size={110} />
+          </div>
+          <div className="card p-4 flex flex-col items-center">
+            <SpeedometerGauge value={bookings.filter((b) => ['pending', 'held'].includes(b.status)).length} max={Math.max(bookings.length, 10)} label="Pending" displayValue={String(bookings.filter((b) => ['pending', 'held'].includes(b.status)).length)} color="#eab308" glowColor="#eab308" size={110} />
+          </div>
+          <div className="card p-4 flex flex-col items-center">
+            <SpeedometerGauge value={totalRevenue} max={Math.max(totalRevenue, 100000)} label="Revenue" displayValue={`₹${(totalRevenue / 1000).toFixed(0)}k`} color="#a855f7" glowColor="#a855f7" size={110} />
+          </div>
+        </div>
+      </ScrollReveal>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200 mb-6">
-        {[
-          { key: 'vehicles' as Tab, label: 'My Vehicles' },
-          { key: 'bookings' as Tab, label: 'Bookings' },
-        ].map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setActiveTab(t.key)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              activeTab === t.key ? 'text-primary-600 border-primary-500' : 'text-dark-400 border-transparent hover:text-dark-600'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <AnimatedTabs
+        tabs={[
+          { key: 'vehicles', label: 'My Vehicles' },
+          { key: 'bookings', label: 'Bookings' },
+          { key: 'analytics', label: '📊 Analytics' },
+        ]}
+        activeTab={activeTab}
+        onTabChange={(key) => setActiveTab(key as Tab)}
+      />
+      <div className="mb-6" />
 
       {/* Vehicles Tab */}
       {activeTab === 'vehicles' && (
@@ -255,24 +274,24 @@ export default function OwnerDashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {vehicles.map((v) => (
                 <div key={v._id} className="card overflow-hidden">
-                  <div className="h-40 bg-gray-100 relative">
+                  <div className="h-40 bg-dark-800 relative">
                     {v.images?.[0] ? (
                       <img src={v.images[0].url} alt={v.title} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center"><Car className="w-8 h-8 text-gray-300" /></div>
+                      <div className="w-full h-full flex items-center justify-center"><Car className="w-8 h-8 text-dark-500" /></div>
                     )}
                     <div className="absolute top-2 right-2">
                       <StatusBadge status={v.status} />
                     </div>
                   </div>
                   <div className="p-4">
-                    <h3 className="font-semibold text-dark-700">{v.title}</h3>
+                    <h3 className="font-semibold text-white">{v.title}</h3>
                     <div className="flex items-center gap-3 mt-2 text-xs text-dark-400">
                       {v.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{v.location}</span>}
                       <span className="flex items-center gap-1"><Users className="w-3 h-3" />{v.specs.seats}</span>
                     </div>
                     <div className="flex items-center justify-between mt-4">
-                      <span className="font-bold text-dark-700">₹{v.pricing.baseRate.toLocaleString()}<span className="text-xs text-dark-400 font-normal">/day</span></span>
+                      <span className="font-bold text-white">₹{v.pricing.baseRate.toLocaleString()}<span className="text-xs text-dark-400 font-normal">/day</span></span>
                       <div className="flex gap-2">
                         <button onClick={() => openEdit(v)} className="p-2 text-dark-400 hover:text-primary-500 transition-colors" aria-label="Edit">
                           <Edit className="w-4 h-4" />
@@ -302,7 +321,7 @@ export default function OwnerDashboard() {
               {bookings.map((b) => (
                 <div key={b._id} className="card p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div>
-                    <h4 className="font-semibold text-dark-700 text-sm">{b.vehicle?.title || 'Vehicle'}</h4>
+                    <h4 className="font-semibold text-white text-sm">{b.vehicle?.title || 'Vehicle'}</h4>
                     <p className="text-xs text-dark-400 flex items-center gap-1 mt-1">
                       <Calendar className="w-3 h-3" />
                       {format(new Date(b.startDate), 'MMM d')} − {format(new Date(b.endDate), 'MMM d, yyyy')}
@@ -324,15 +343,78 @@ export default function OwnerDashboard() {
         </>
       )}
 
+      {/* Analytics Tab */}
+      {activeTab === 'analytics' && (
+        <div className="space-y-6">
+          {/* Range selector */}
+          <div className="flex gap-2">
+            {['weekly', 'monthly', 'yearly'].map(r => (
+              <button key={r} onClick={() => setAnalyticsRange(r)} className={`text-xs px-3 py-1.5 rounded-full border transition-colors capitalize ${analyticsRange === r ? 'bg-primary-600/20 border-primary-500 text-primary-400' : 'bg-dark-800 border-dark-700 text-dark-400'}`}>{r}</button>
+            ))}
+          </div>
+
+          {analyticsLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">{[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-dark-800 rounded-2xl animate-pulse" />)}</div>
+          ) : analytics ? (
+            <>
+              {/* KPI Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="card p-4"><p className="text-xs text-dark-400 mb-1">Earnings (after commission)</p><p className="text-2xl font-bold text-dark-100">₹{analytics.ownerEarnings?.toLocaleString() ?? 0}</p></div>
+                <div className="card p-4"><p className="text-xs text-dark-400 mb-1">Occupancy Rate</p><p className="text-2xl font-bold text-green-400">{analytics.occupancyRate ?? 0}%</p></div>
+                <div className="card p-4"><p className="text-xs text-dark-400 mb-1">Cancellation Rate</p><p className="text-2xl font-bold text-red-400">{analytics.cancellationRate ?? 0}%</p></div>
+                <div className="card p-4"><p className="text-xs text-dark-400 mb-1">Monthly Projection</p><p className="text-2xl font-bold text-primary-400">₹{analytics.monthlyProjection?.toLocaleString() ?? 0}</p></div>
+              </div>
+
+              {/* Revenue Chart */}
+              {analytics.monthlyTrend?.length > 0 && (
+                <div className="card p-5">
+                  <h3 className="font-semibold text-dark-200 mb-4">Revenue Trend</h3>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={analytics.monthlyTrend}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                      <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                      <Tooltip contentStyle={{ background: '#1e293b', border: 'none', borderRadius: 8 }} labelStyle={{ color: '#94a3b8' }} />
+                      <Bar dataKey="revenue" fill="#6366f1" radius={[4, 4, 0, 0]} name="Revenue (₹)" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* Occupancy Donut */}
+              <div className="card p-5 flex items-center gap-8">
+                <div className="flex-shrink-0">
+                  <ResponsiveContainer width={140} height={140}>
+                    <PieChart>
+                      <Pie data={[{ value: analytics.occupancyRate ?? 0 }, { value: 100 - (analytics.occupancyRate ?? 0) }]} cx="50%" cy="50%" innerRadius={40} outerRadius={65} dataKey="value" startAngle={90} endAngle={-270}>
+                        <Cell fill="#6366f1" />
+                        <Cell fill="#1e293b" />
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div>
+                  <p className="text-4xl font-bold text-dark-100">{analytics.occupancyRate ?? 0}%</p>
+                  <p className="text-dark-400 mt-1">Fleet Occupancy</p>
+                  <p className="text-xs text-dark-500 mt-2">Higher occupancy = more earnings. Target {'>'} 70%</p>
+                </div>
+              </div>
+            </>
+          ) : (
+            <EmptyState title="No analytics data" description="Analytics will appear once you have bookings." />
+          )}
+        </div>
+      )}
+
       {/* Vehicle Form Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={resetForm}>
           <div
-            className="bg-white rounded-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto shadow-elevated animate-fade-in"
+            className="bg-dark-800/95 backdrop-blur-2xl border border-white/[0.08] rounded-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto shadow-2xl shadow-black/50 animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-dark-700">
+            <div className="flex items-center justify-between p-6 border-b border-white/[0.06]">
+              <h2 className="text-lg font-bold text-white">
                 {editingVehicle ? 'Edit Vehicle' : 'Add New Vehicle'}
               </h2>
               <button onClick={resetForm} className="text-dark-300 hover:text-dark-600">
@@ -461,7 +543,7 @@ export default function OwnerDashboard() {
               {/* Image upload */}
               <div>
                 <label className="label">Images</label>
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-xl p-6 cursor-pointer hover:border-primary-400 transition-colors">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-white/[0.1] rounded-xl p-6 cursor-pointer hover:border-primary-500/40 transition-colors">
                   <Upload className="w-5 h-5 text-dark-400" />
                   <span className="text-sm text-dark-400">
                     {imageFiles.length > 0 ? `${imageFiles.length} file(s) selected` : 'Click to upload images'}

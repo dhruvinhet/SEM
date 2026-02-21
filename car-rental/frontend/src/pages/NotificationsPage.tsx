@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { notificationsAPI } from '../lib/api';
 import { EmptyState, ErrorState } from '../components/States';
+import ScrollReveal from '../components/ScrollReveal';
 import { Bell, Check, CheckCheck, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
-import toast from 'react-hot-toast';
+import { customToast } from '../components/CustomToast';
 import type { Notification } from '../types';
 
 export default function NotificationsPage() {
@@ -35,10 +36,10 @@ export default function NotificationsPage() {
       const unreadIds = notifications.filter((n) => !n.read).map((n) => n._id);
       if (unreadIds.length === 0) return;
       await notificationsAPI.markRead(unreadIds);
-      toast.success('All marked as read');
+      customToast.success('All marked as read');
       loadNotifications();
     } catch {
-      toast.error('Failed to mark as read');
+      customToast.error('Failed to mark as read');
     }
   };
 
@@ -50,7 +51,7 @@ export default function NotificationsPage() {
       );
       setUnreadCount((c) => Math.max(0, c - 1));
     } catch {
-      toast.error('Failed');
+      customToast.error('Failed');
     }
   };
 
@@ -67,9 +68,10 @@ export default function NotificationsPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <ScrollReveal>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-display font-bold text-dark-700">Notifications</h1>
+          <h1 className="text-3xl font-display font-bold text-white">Notifications</h1>
           {unreadCount > 0 && (
             <p className="text-dark-400 text-sm mt-1">{unreadCount} unread</p>
           )}
@@ -80,16 +82,17 @@ export default function NotificationsPage() {
           </button>
         )}
       </div>
+      </ScrollReveal>
 
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="card p-4 animate-pulse">
               <div className="flex gap-3">
-                <div className="w-10 h-10 bg-gray-200 rounded-xl flex-shrink-0" />
+                <div className="w-10 h-10 bg-dark-800 rounded-xl flex-shrink-0" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-3/4" />
-                  <div className="h-3 bg-gray-200 rounded w-1/2" />
+                  <div className="h-4 bg-dark-800 rounded w-3/4" />
+                  <div className="h-3 bg-dark-800 rounded w-1/2" />
                 </div>
               </div>
             </div>
@@ -101,20 +104,20 @@ export default function NotificationsPage() {
         <EmptyState title="No notifications" description="You're all caught up!" />
       ) : (
         <div className="space-y-2">
-          {notifications.map((n) => (
+          {notifications.map((n, idx) => (
+            <ScrollReveal key={n._id} delay={idx * 50}>
             <div
-              key={n._id}
               className={`card p-4 transition-colors cursor-pointer ${
-                !n.read ? 'bg-primary-50/50 border-primary-100' : ''
+                !n.read ? 'bg-primary-500/5 border-primary-500/20' : ''
               }`}
               onClick={() => !n.read && handleMarkRead(n._id)}
             >
               <div className="flex gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-lg flex-shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-dark-800/60 flex items-center justify-center text-lg flex-shrink-0">
                   {getIcon(n.type)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm ${!n.read ? 'font-semibold text-dark-700' : 'text-dark-600'}`}>
+                  <p className={`text-sm ${!n.read ? 'font-semibold text-white' : 'text-dark-300'}`}>
                     {n.message}
                   </p>
                   <p className="text-xs text-dark-300 mt-1 flex items-center gap-1">
@@ -127,6 +130,7 @@ export default function NotificationsPage() {
                 )}
               </div>
             </div>
+            </ScrollReveal>
           ))}
 
           {/* Pagination */}

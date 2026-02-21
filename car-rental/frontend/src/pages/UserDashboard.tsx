@@ -5,11 +5,14 @@ import { useAuthStore } from '../store/authStore';
 import StatusBadge from '../components/StatusBadge';
 import { BookingRowSkeleton } from '../components/Skeletons';
 import { EmptyState, ErrorState } from '../components/States';
+import ScrollReveal from '../components/ScrollReveal';
+import SpeedometerGauge from '../components/SpeedometerGauge';
+import AnimatedTabs from '../components/AnimatedTabs';
 import {
   Calendar, Car, ChevronRight, Clock, FileText, Star, X, AlertTriangle, MessageSquare,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import toast from 'react-hot-toast';
+import { customToast } from '../components/CustomToast';
 import type { Booking } from '../types';
 
 type Tab = 'all' | 'upcoming' | 'active' | 'completed' | 'cancelled';
@@ -70,12 +73,12 @@ export default function UserDashboard() {
     setActionLoading(true);
     try {
       await bookingsAPI.cancel(selectedBooking._id, cancelReason);
-      toast.success('Booking cancelled');
+      customToast.booking('Booking cancelled');
       setCancelReason('');
       setSelectedBooking(null);
       loadBookings();
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Cancel failed');
+      customToast.error(err?.response?.data?.detail || 'Cancel failed');
     } finally {
       setActionLoading(false);
     }
@@ -86,12 +89,12 @@ export default function UserDashboard() {
     setActionLoading(true);
     try {
       await bookingsAPI.dispute(selectedBooking._id, disputeReason);
-      toast.success('Dispute submitted');
+      customToast.success('Dispute submitted');
       setDisputeReason('');
       setSelectedBooking(null);
       loadBookings();
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Dispute failed');
+      customToast.error(err?.response?.data?.detail || 'Dispute failed');
     } finally {
       setActionLoading(false);
     }
@@ -107,12 +110,12 @@ export default function UserDashboard() {
         rating: reviewRating,
         comment: reviewComment,
       });
-      toast.success('Review submitted!');
+      customToast.review('Review submitted!');
       setShowReview(false);
       setReviewRating(5);
       setReviewComment('');
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Submit review failed');
+      customToast.error(err?.response?.data?.detail || 'Submit review failed');
     } finally {
       setActionLoading(false);
     }
@@ -126,46 +129,35 @@ export default function UserDashboard() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-display font-bold text-dark-700">My Bookings</h1>
+        <h1 className="text-3xl font-display font-bold text-white">My Bookings</h1>
         <p className="text-dark-400 mt-1">Welcome back, {user?.name?.split(' ')[0] || 'User'}!</p>
       </div>
 
-      {/* Quick stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'Total', value: bookings.length, icon: FileText, color: 'bg-blue-50 text-blue-600' },
-          { label: 'Active', value: bookings.filter((b) => b.status === 'active').length, icon: Car, color: 'bg-green-50 text-green-600' },
-          { label: 'Upcoming', value: bookings.filter((b) => ['pending', 'held', 'confirmed'].includes(b.status)).length, icon: Clock, color: 'bg-yellow-50 text-yellow-600' },
-          { label: 'Completed', value: bookings.filter((b) => b.status === 'completed').length, icon: Star, color: 'bg-purple-50 text-purple-600' },
-        ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="card p-4 flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color}`}>
-              <Icon className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-dark-700">{value}</p>
-              <p className="text-xs text-dark-400">{label}</p>
-            </div>
+      {/* Quick stats — speedometer gauges */}
+      <ScrollReveal>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+          <div className="card p-4 flex flex-col items-center">
+            <SpeedometerGauge value={bookings.length} max={Math.max(bookings.length, 20)} label="Total" displayValue={String(bookings.length)} color="#00d4ff" glowColor="#00d4ff" size={110} />
           </div>
-        ))}
-      </div>
+          <div className="card p-4 flex flex-col items-center">
+            <SpeedometerGauge value={bookings.filter((b) => b.status === 'active').length} max={Math.max(bookings.length, 10)} label="Active" displayValue={String(bookings.filter((b) => b.status === 'active').length)} color="#22c55e" glowColor="#22c55e" size={110} />
+          </div>
+          <div className="card p-4 flex flex-col items-center">
+            <SpeedometerGauge value={bookings.filter((b) => ['pending', 'held', 'confirmed'].includes(b.status)).length} max={Math.max(bookings.length, 10)} label="Upcoming" displayValue={String(bookings.filter((b) => ['pending', 'held', 'confirmed'].includes(b.status)).length)} color="#eab308" glowColor="#eab308" size={110} />
+          </div>
+          <div className="card p-4 flex flex-col items-center">
+            <SpeedometerGauge value={bookings.filter((b) => b.status === 'completed').length} max={Math.max(bookings.length, 10)} label="Completed" displayValue={String(bookings.filter((b) => b.status === 'completed').length)} color="#a855f7" glowColor="#a855f7" size={110} />
+          </div>
+        </div>
+      </ScrollReveal>
 
       {/* Tabs */}
-      <div className="flex gap-1 overflow-x-auto border-b border-gray-200 mb-6">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setActiveTab(t.key)}
-            className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px ${
-              activeTab === t.key
-                ? 'text-primary-600 border-primary-500'
-                : 'text-dark-400 border-transparent hover:text-dark-600'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <AnimatedTabs
+        tabs={tabs.map((t) => ({ key: t.key, label: t.label }))}
+        activeTab={activeTab}
+        onTabChange={(key) => setActiveTab(key as Tab)}
+      />
+      <div className="mb-6" />
 
       {/* Booking list */}
       {loading ? (
@@ -189,17 +181,17 @@ export default function UserDashboard() {
             >
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-start gap-4">
-                  <div className="w-20 h-14 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
+                  <div className="w-20 h-14 rounded-xl bg-dark-800 overflow-hidden flex-shrink-0">
                     {b.vehicle?.images?.[0]?.url ? (
                       <img src={b.vehicle.images[0].url} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Car className="w-6 h-6 text-gray-300" />
+                        <Car className="w-6 h-6 text-dark-500" />
                       </div>
                     )}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-dark-700 text-sm">
+                    <h3 className="font-semibold text-white text-sm">
                       {b.vehicle?.title || 'Vehicle'}
                     </h3>
                     <p className="text-xs text-dark-400 mt-0.5 flex items-center gap-1">
@@ -210,7 +202,7 @@ export default function UserDashboard() {
                 </div>
                 <div className="flex items-center gap-4">
                   <StatusBadge status={b.status} />
-                  <span className="text-sm font-bold text-dark-700">
+                  <span className="text-sm font-bold text-white">
                     ₹{b.priceBreakdown?.total?.toLocaleString() || '—'}
                   </span>
                   <ChevronRight className="w-4 h-4 text-dark-300 hidden sm:block" />
@@ -228,11 +220,11 @@ export default function UserDashboard() {
           onClick={() => setSelectedBooking(null)}
         >
           <div
-            className="bg-white rounded-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-elevated animate-fade-in"
+            className="bg-dark-800/95 backdrop-blur-2xl border border-white/[0.08] rounded-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-2xl shadow-black/50 animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-dark-700">Booking Details</h2>
+            <div className="flex items-center justify-between p-6 border-b border-white/[0.06]">
+              <h2 className="text-lg font-bold text-white">Booking Details</h2>
               <button onClick={() => setSelectedBooking(null)} className="text-dark-300 hover:text-dark-600">
                 <X className="w-5 h-5" />
               </button>
@@ -246,21 +238,21 @@ export default function UserDashboard() {
                 <span className="text-sm text-dark-400">Vehicle</span>
                 <Link
                   to={`/vehicle/${selectedBooking.vehicleId}`}
-                  className="text-sm text-primary-600 hover:underline"
+                  className="text-sm text-primary-400 hover:underline"
                 >
                   {selectedBooking.vehicle?.title || 'View Vehicle'}
                 </Link>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-dark-400">Dates</span>
-                <span className="text-sm text-dark-700">
+                <span className="text-sm text-white">
                   {format(new Date(selectedBooking.startDate), 'MMM d')} − {format(new Date(selectedBooking.endDate), 'MMM d, yyyy')}
                 </span>
               </div>
 
               {/* Price breakdown */}
               {selectedBooking.priceBreakdown && (
-                <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                <div className="bg-dark-900/60 border border-white/[0.06] rounded-xl p-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-dark-400">Base ({selectedBooking.priceBreakdown.days} days)</span>
                     <span>₹{selectedBooking.priceBreakdown.base.toLocaleString()}</span>
@@ -275,10 +267,10 @@ export default function UserDashboard() {
                     <span className="text-dark-400">Tax</span>
                     <span>₹{selectedBooking.priceBreakdown.tax?.toLocaleString()}</span>
                   </div>
-                  <hr className="border-gray-200" />
+                  <hr className="border-white/[0.06]" />
                   <div className="flex justify-between font-bold">
-                    <span>Total</span>
-                    <span>₹{selectedBooking.priceBreakdown.total.toLocaleString()}</span>
+                    <span className="text-white">Total</span>
+                    <span className="text-white">₹{selectedBooking.priceBreakdown.total.toLocaleString()}</span>
                   </div>
                 </div>
               )}
@@ -322,11 +314,11 @@ export default function UserDashboard() {
                         <MessageSquare className="w-4 h-4" /> Leave a Review
                       </button>
                     ) : (
-                      <div className="space-y-3 bg-gray-50 rounded-xl p-4">
+                      <div className="space-y-3 bg-dark-900/60 border border-white/[0.06] rounded-xl p-4">
                         <div className="flex gap-1">
                           {Array.from({ length: 5 }).map((_, i) => (
                             <button key={i} onClick={() => setReviewRating(i + 1)}>
-                              <Star className={`w-6 h-6 ${i < reviewRating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} />
+                              <Star className={`w-6 h-6 ${i < reviewRating ? 'text-yellow-500 fill-yellow-500' : 'text-dark-600'}`} />
                             </button>
                           ))}
                         </div>

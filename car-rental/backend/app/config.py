@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     SENTRY_DSN: str = ""
     TAX_PERCENTAGE: float = 18.0
     SERVICE_FEE_PERCENTAGE: float = 5.0
+    FIRST_TIME_DISCOUNT_PERCENT: float = 10.0
+    REFERRAL_DISCOUNT_PERCENT: float = 5.0
+    PLATFORM_COMMISSION_PERCENT: float = 15.0
+    SURGE_MULTIPLIER: float = 1.5  # Surge pricing multiplier
 
     @property
     def cors_origins_list(self) -> List[str]:
@@ -26,3 +30,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+

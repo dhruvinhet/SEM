@@ -1,0 +1,411 @@
+Smart Search & Discovery (You’re Missing Intelligence)
+
+Users don’t scroll endlessly. They search smartly.
+
+Add:
+
+Location-based search (map radius)
+
+“Available now” toggle
+
+Instant booking filter
+
+Price range slider
+
+Sort by:
+
+Best rated
+
+Lowest price
+
+Most popular
+
+Distance
+
+Saved searches
+
+Recently viewed vehicles
+
+Without this, it feels like a static catalog.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Map Integration (Critical Feature)
+
+You’re missing map-based discovery.
+
+Add:
+
+Vehicle location preview on map
+
+Clustered pins
+
+Click pin → mini vehicle card
+
+Distance calculation from user location
+
+This massively improves UX.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Dynamic Pricing System
+
+Right now pricing is static.
+
+Add:
+
+Weekend pricing
+
+Peak season pricing
+
+Owner custom pricing per date range
+
+Discount coupons
+
+First-time user discount
+
+Referral rewards
+
+Surge pricing (advanced)
+
+Static pricing = basic app.
+Dynamic pricing = real marketplace
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Trust & Safety Features (Very Important)
+
+Marketplace = trust.
+
+You’re missing:
+
+Owner verification badge
+
+User identity verification (Aadhar/License upload placeholder)
+
+Driver license validation upload
+
+Vehicle insurance verification
+
+Security deposit handling workflow
+
+Damage reporting flow (with photo upload)
+
+Dispute resolution system
+
+Emergency contact feature
+
+Blacklist users
+
+Without trust layer → platform collapses.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Pre & Post Trip Workflow (You Don’t Have This)
+
+This is a BIG missing piece.
+
+Add:
+
+Before trip
+
+Pickup checklist
+
+Upload vehicle condition photos
+
+Odometer reading capture
+
+After trip
+
+Return condition photos
+
+Fuel level confirmation
+
+Damage report
+
+Auto-calculate extra charges
+
+This makes it realistic.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Advanced Analytics (Admin & Owner)
+
+You have basic analytics. That’s not enough.
+
+Add:
+
+For Owners:
+
+Revenue chart (daily/weekly/monthly)
+
+Occupancy rate
+
+Cancellation rate
+
+Earnings projection
+
+For Admin:
+
+GMV (Gross Merchandise Value)
+
+Platform commission revenue
+
+Most active cities
+
+Fraud alerts
+
+User growth graph
+
+Without this, it feels like a student project.
+
+
+
+
+also admin should be able to do all type of changes, not just seeing the data insights. means admin should be able to do cancel, add people, owner, vehicle, ride. this is i am just providing example what i am expecting from admin portal, we will have to provide full end to end all features access to admin.
+
+
+Bulk operations (approve multiple vehicles, export data)
+System announcements (broadcast messages to all users)
+Configuration management UI (update GST %, service fees without redeploy)
+
+
+
+3.1 Admin Analytics Dashboard
+Summary metrics:
+Total users
+Total vehicle owners
+Total active vehicles
+Total bookings
+Time‑range analytics (weekly, monthly, yearly):
+Bookings created, cancelled, completed.
+Revenue and conversion rate.
+Monthly revenue trend for last 12 months.
+Top 5 vehicles by booking count.
+Booking status distribution.
+3.2 Full Data Management
+Manage users:
+List all users, filter by role, paginate.
+Password hashes never exposed.
+Manage vehicles:
+View all vehicles.
+Approve or reject listings (with rejection reason).
+Manage bookings:
+View all bookings with filter by status and date range.
+Export bookings as CSV (Booking ID, Vehicle ID, User ID, Owner ID, Start/End dates, Days, Total amount, Status, CreatedAt).
+Payment & refund control:
+View payment history per booking.
+Trigger refunds:
+Full or partial (not exceeding original amount).
+Creates a negative payment record.
+Marks booking as Refunded and original payment as Refunded.
+3.3 Disputes & Audit
+Dispute resolution:
+For Disputed bookings, choose:
+“refund” → calculate and record refund, mark booking as Refunded.
+“no_refund” → mark booking as Completed.
+Audit log viewer:
+See immutable records of actions like:
+user_signup, vehicle_create/update/delete/approve/reject
+booking_create/confirm/cancel/dispute/resolve
+payment_charge/refund
+review_create
+hold_expired
+Filter by action type, paginate.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Mobile Experience Strategy
+
+Even if you don’t build mobile app:
+
+Mobile-first UI design
+
+Bottom navigation for mobile
+
+Swipe gestures for vehicle gallery
+
+Rental apps are mobile-heavy.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Cancellation & Refund Intelligence
+
+Right now cancellation is simple.
+
+Add:
+
+Flexible vs Strict cancellation policies
+
+Auto-refund calculation engine
+
+Partial refund logic
+
+Late return penalty automation
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

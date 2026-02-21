@@ -1,9 +1,11 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+﻿import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import MobileBottomNav from './components/MobileBottomNav';
+import { useRippleEffect } from './hooks/useRippleEffect';
 
 // Pages
 import Landing from './pages/Landing';
@@ -19,7 +21,7 @@ import NotificationsPage from './pages/NotificationsPage';
 function NotFound() {
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
-      <h1 className="text-6xl font-display font-bold text-dark-700">404</h1>
+      <h1 className="text-6xl font-display font-bold text-white">404</h1>
       <p className="text-dark-400 mt-2 mb-6">Page not found</p>
       <a href="/" className="btn-primary">Go Home</a>
     </div>
@@ -27,6 +29,8 @@ function NotFound() {
 }
 
 export default function App() {
+  useRippleEffect();
+
   return (
     <BrowserRouter>
       <Toaster
@@ -75,6 +79,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
+      <MobileBottomNav />
     </BrowserRouter>
   );
 }

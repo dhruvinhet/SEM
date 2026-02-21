@@ -2,7 +2,7 @@ import React from 'react';
 
 export function VehicleCardSkeleton() {
   return (
-    <div className="rounded-3xl border border-sand-200 bg-white overflow-hidden">
+    <div className="rounded-3xl border border-white/[0.06] bg-dark-800/50 overflow-hidden">
       <div className="h-52 skeleton !rounded-none" />
       <div className="p-5 space-y-3">
         <div className="h-5 skeleton w-3/4" />
@@ -12,7 +12,7 @@ export function VehicleCardSkeleton() {
           <div className="h-4 skeleton w-10" />
           <div className="h-4 skeleton w-10" />
         </div>
-        <div className="flex justify-between items-center pt-4 border-t border-sand-200">
+        <div className="flex justify-between items-center pt-4 border-t border-white/[0.06]">
           <div className="h-7 skeleton w-28" />
           <div className="h-10 skeleton w-24 !rounded-xl" />
         </div>
@@ -37,7 +37,7 @@ export function BookingRowSkeleton() {
 
 export function StatCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-sand-200 bg-white p-6">
+    <div className="rounded-2xl border border-white/[0.06] bg-dark-800/50 p-6">
       <div className="h-4 skeleton w-24 mb-3" />
       <div className="h-8 skeleton w-32 mb-2" />
       <div className="h-3 skeleton w-20" />

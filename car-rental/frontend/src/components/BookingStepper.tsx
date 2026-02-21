@@ -23,8 +23,8 @@ export default function BookingStepper({ currentStep, steps }: Props) {
                 <div
                   className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-500
                     ${isCompleted ? 'bg-accent-500 text-white' : ''}
-                    ${isCurrent ? 'bg-primary-500 text-white ring-4 ring-primary-100' : ''}
-                    ${!isCompleted && !isCurrent ? 'bg-sand-100 text-dark-400 border border-sand-200' : ''}
+                    ${isCurrent ? 'bg-primary-500 text-white ring-4 ring-primary-500/20' : ''}
+                    ${!isCompleted && !isCurrent ? 'bg-dark-800 text-dark-400 border border-white/[0.08]' : ''}
                   `}
                   aria-current={isCurrent ? 'step' : undefined}
                 >
@@ -32,7 +32,7 @@ export default function BookingStepper({ currentStep, steps }: Props) {
                 </div>
                 <span
                   className={`mt-2 text-[11px] font-semibold hidden sm:block transition-colors
-                    ${isCurrent ? 'text-primary-600' : isCompleted ? 'text-accent-600' : 'text-dark-400'}
+                    ${isCurrent ? 'text-primary-400' : isCompleted ? 'text-accent-400' : 'text-dark-400'}
                   `}
                 >
                   {step}
@@ -43,7 +43,7 @@ export default function BookingStepper({ currentStep, steps }: Props) {
                 <div className="flex-1 mx-3">
                   <div
                     className={`h-[2px] rounded-full transition-colors duration-500
-                      ${isCompleted ? 'bg-accent-500' : 'bg-sand-200'}
+                      ${isCompleted ? 'bg-accent-500' : 'bg-dark-700'}
                     `}
                   />
                 </div>
