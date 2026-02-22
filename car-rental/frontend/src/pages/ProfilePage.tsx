@@ -257,7 +257,7 @@ export default function ProfilePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="label">Document Type</label>
-              <select value={verDocType} onChange={e => setVerDocType(e.target.value as any)} className="input-field">
+              <select value={verDocType} onChange={e => setVerDocType(e.target.value as any)} className="input-field" title="Document Type">
                 <option value="identity">Identity (Aadhaar / Passport)</option>
                 <option value="driving_licence">Driving Licence</option>
                 <option value="insurance">Insurance Document</option>
@@ -296,15 +296,15 @@ export default function ProfilePage() {
         <form onSubmit={handleChangePassword} className="space-y-4">
           <div>
             <label className="label">Current Password</label>
-            <input type={showPasswords ? 'text' : 'password'} value={passwordForm.currentPassword} onChange={e => setPasswordForm(p => ({ ...p, currentPassword: e.target.value }))} className="input-field" required />
+            <input type={showPasswords ? 'text' : 'password'} value={passwordForm.currentPassword} onChange={e => setPasswordForm(p => ({ ...p, currentPassword: e.target.value }))} className="input-field" required placeholder="Enter current password" title="Current Password" />
           </div>
           <div>
             <label className="label">New Password</label>
-            <input type={showPasswords ? 'text' : 'password'} value={passwordForm.newPassword} onChange={e => setPasswordForm(p => ({ ...p, newPassword: e.target.value }))} className="input-field" required minLength={6} />
+            <input type={showPasswords ? 'text' : 'password'} value={passwordForm.newPassword} onChange={e => setPasswordForm(p => ({ ...p, newPassword: e.target.value }))} className="input-field" required minLength={6} placeholder="Enter new password" title="New Password" />
           </div>
           <div>
             <label className="label">Confirm New Password</label>
-            <input type={showPasswords ? 'text' : 'password'} value={passwordForm.confirmPassword} onChange={e => setPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))} className="input-field" required />
+            <input type={showPasswords ? 'text' : 'password'} value={passwordForm.confirmPassword} onChange={e => setPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))} className="input-field" required placeholder="Confirm new password" title="Confirm New Password" />
           </div>
           <label className="flex items-center gap-2 text-sm text-dark-400 cursor-pointer">
             <input type="checkbox" checked={showPasswords} onChange={e => setShowPasswords(e.target.checked)} className="rounded" />
